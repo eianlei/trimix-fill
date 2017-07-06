@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # (c) 2017 Ian Leiman, ian.leiman@gmail.com
 # trimix-fill-3.py
+# github project https://github.com/eianlei/trimix-fill/
 # Python-3 script using tkinter (v 8.5 or higher) as GUI
 # calculates trimix blending for 3 different fill methods
 # works also for Nitrox
@@ -39,13 +40,13 @@ def calculate(*args):
         he_cost_eur   = float(he_cost.get())
         fill_cost_eur = float(fill_cost.get())
 
-        #print to console for debugging
-        print("tbar_1 = {}".format(tbar_1))
-        print("endbar = {}".format(endbar))
-        print("start_o2 = {}".format(start_o2))
-        print("start_he = {}".format(start_he))
-        print("end_o2 = {}".format(end_o2))
-        print("end_he = {}".format(end_he))
+##        #print to console for debugging
+##        print("tbar_1 = {}".format(tbar_1))
+##        print("endbar = {}".format(endbar))
+##        print("start_o2 = {}".format(start_o2))
+##        print("start_he = {}".format(start_he))
+##        print("end_o2 = {}".format(end_o2))
+##        print("end_he = {}".format(end_he))
         
         # error checking for input values
         if tbar_1 <0 or endbar <0:
@@ -116,18 +117,18 @@ def calculate(*args):
             print("==0 ")
         # end else
 
-        #print to console for debugging
-        print("tbar_2 = {}".format(tbar_2))
-        print("tbar_3 = {}".format(tbar_3))
-        print("end_he_bar = {}".format(end_he_bar))
-        print("end_o2_bar  = {}".format( end_o2_bar))
-        print("start_he_bar  = {}".format(start_he_bar ))
-        print("start_o2_bar  = {}".format(start_o2_bar ))
-        print("add_he  = {}".format(add_he ))
-        print("add_o2  = {}".format(add_o2))
-        print("add_nitrox  = {}".format(add_nitrox ))
-        print("add_tmx  = {}".format(add_tmx ))
-        print("add_air = {}".format(add_air ))
+##        #print to console for debugging
+##        print("tbar_2 = {}".format(tbar_2))
+##        print("tbar_3 = {}".format(tbar_3))
+##        print("end_he_bar = {}".format(end_he_bar))
+##        print("end_o2_bar  = {}".format( end_o2_bar))
+##        print("start_he_bar  = {}".format(start_he_bar ))
+##        print("start_o2_bar  = {}".format(start_o2_bar ))
+##        print("add_he  = {}".format(add_he ))
+##        print("add_o2  = {}".format(add_o2))
+##        print("add_nitrox  = {}".format(add_nitrox ))
+##        print("add_tmx  = {}".format(add_tmx ))
+##        print("add_air = {}".format(add_air ))
 
 
         #error checking for results
@@ -225,8 +226,8 @@ def calculate(*args):
         result_pp.set("enter all values as numbers!")
         pass
     
-def print_action(*args):
-        print("PRINT button pressed")
+def help_action(*args):
+        print("HELP button pressed")
 
 
 
@@ -329,7 +330,7 @@ m_tmx = ttk.Radiobutton(mainframe, text='3. Trimix CFM',\
 ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=1, row=12, sticky=W)
 
 # button for copying result to clipcoard
-ttk.Button(mainframe, text="PRINT", command=print_action).grid(column=2, row=12, sticky=W)
+ttk.Button(mainframe, text="HELP", command=help_action).grid(column=2, row=12, sticky=W)
 
 # the bottom label to print results
 ttk.Label (mainframe, text="result", font="bold", relief=RAISED)\
