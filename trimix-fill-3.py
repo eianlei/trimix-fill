@@ -67,7 +67,7 @@ def calculate(*args):
             return 
                
         # do the calculations
-        print("he_ignore.get = {}".format(he_ignore.get()))
+#        print("he_ignore.get = {}".format(he_ignore.get()))
         if he_ignore.get() == 1:
             add_he = 0
             end_o2_bar = endbar * end_o2 /100
