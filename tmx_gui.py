@@ -6,6 +6,8 @@
 #  this GUI uses function tmx_calc
 # use at your own risk, no guarantees, no liability!
 #
+tmx_gui_version = "1.3"
+
 from tkinter import *
 from tkinter import ttk
 import time
@@ -13,22 +15,27 @@ import time
 from tmx_calc import *
 
 root = Tk()
-root.title("Trimix fill calculator, 3 selectable methods")
+root.title("TMXGUIv{} Trimix fill calculator, 3 selectable methods".format(tmx_gui_version))
 
+# create the main GUI frame
 mainframe = ttk.Frame(root, padding="3 3 12 12")
 mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
 mainframe.columnconfigure(0, weight=1)
 mainframe.rowconfigure(0, weight=1)
 
-print("tmx_gui: starting")
+print("tmx_gui v. {}: starting".format(tmx_gui_version))
 
-def calculate():
+
+
+
+## callback function that is called when CALCULATE pressed
+def calculate(*args) :
     """gets all entry data from GUI widgets and calls tmx_calc"""
     try:
-        m = method.get()
-        #        print(m)
+        calc_method = method.get()
+
         print("tmx_gui: calculate")
-        # convert input strings to floats
+        # get data from GUI objects, then convert input strings to floats
         tbar_1 = float(start_bar.get())
         endbar = float(end_bar.get())
         start_o2 = float(start_o2_pct.get())
@@ -40,12 +47,17 @@ def calculate():
         o2_cost_eur = float(o2_cost.get())
         he_cost_eur = float(he_cost.get())
         fill_cost_eur = float(fill_cost.get())
+        he_ig = he_ignore.get()
 
-        result = tmx_calc(m, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ignore)
+        print("calculate with: ")
+        print(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig)
+        #
+        result = tmx_calc(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig)
         result_pp.set(result['status_text'])
         add_o2 = result['add_o2']
         add_he = result['add_he']
-        cost_result = tmx_cost_calc(liters, endbar, add_o2, add_he, o2_cost_eur, he_cost_eur, fill_cost_eur)
+        cost_result = tmx_cost_calc(liters, endbar, add_o2, add_he, o2_cost_eur,
+                                    he_cost_eur, fill_cost_eur)
         total_cost_string = cost_result['result_txt']
         total_cost.set(total_cost_string)
 
@@ -53,7 +65,7 @@ def calculate():
         root.clipboard_clear()
         root.clipboard_append("Output result from Trimix fill calculator\n")
         root.clipboard_append("=========================================\n")
-        root.clipboard_append(time.strftime("%Y-%m-%d %H:%M"))
+        root.clipboard_append(time.strftime("%Y-%method-%d %H:%M"))
         root.clipboard_append("\n- current tank {} bar, {} liters, mix {}/{}\n".format
                               (tbar_1, liters, start_o2, start_he))
         root.clipboard_append("- wanted mix {}/{}\n".format(end_o2, end_he))
@@ -66,22 +78,24 @@ def calculate():
 
 def help_action(*args):
     print("HELP button pressed")
-
+    pass
 
 # define all strings for input and output, set default values
-start_bar = StringVar(root, value="0")
-start_o2_pct = StringVar(root, value="21")
-start_he_pct = StringVar(root, value="35")
-end_bar = StringVar(root, value="200")
-end_o2_pct = StringVar(root, value="21")
-end_he_pct = StringVar(root, value="35")
-result_pp = StringVar(root)
-
-tank_lit = StringVar(root, value="24")
-o2_cost = StringVar(root, value="4.15")
-he_cost = StringVar(root, value="25")
-fill_cost = StringVar(root, value="5")
-total_cost = StringVar(root)
+start_bar       = StringVar(root, value="0")
+start_o2_pct    = StringVar(root, value="21")
+start_he_pct    = StringVar(root, value="35")
+end_bar         = StringVar(root, value="200")
+end_o2_pct      = StringVar(root, value="21")
+end_he_pct      = StringVar(root, value="35")
+result_pp       = StringVar(root)
+#
+he_ignore       = IntVar(root, value=0)
+#
+tank_lit        = StringVar(root, value="24")
+o2_cost         = StringVar(root, value="4.15")
+he_cost         = StringVar(root, value="25")
+fill_cost       = StringVar(root, value="5")
+total_cost      = StringVar(root)
 
 ############### define the input widgets on top
 # top label
@@ -118,8 +132,7 @@ style = ttk.Style()
 style.configure("Grey.TLabel", foreground="grey")
 style.configure("Black.TLabel", foreground="black")
 
-# grey out Helium input widgets
-he_ignore = IntVar(root, value=0)
+
 
 # callback to handle
 def he_ignore_change(*args):
@@ -156,11 +169,11 @@ fill_cost_entry.grid(column=4, row=5, sticky=(W, E))
 
 # the radio buttons to select method, rows, 9-11
 method = StringVar(root, value="tmx")
-m_pp = ttk.Radiobutton(mainframe, text='1. Partial Pressure fill, 1st He, 2nd O2, 3rd air', \
+m_pp = ttk.Radiobutton(mainframe, text='1. Partial Pressure fill, 1st He, 2nd O2, 3rd air',
                        variable=method, value='pp').grid(column=1, row=9, sticky=W, columnspan=2)
-m_cfm = ttk.Radiobutton(mainframe, text='2. Helium then Nitrox CFM', \
+m_cfm = ttk.Radiobutton(mainframe, text='2. Helium then Nitrox CFM',
                         variable=method, value='cfm').grid(column=1, row=10, sticky=W, columnspan=2)
-m_tmx = ttk.Radiobutton(mainframe, text='3. Trimix CFM', \
+m_tmx = ttk.Radiobutton(mainframe, text='3. Trimix CFM',
                         variable=method, value='tmx').grid(column=1, row=11, sticky=W, columnspan=2)
 
 # the button to invoke calculation
@@ -189,3 +202,8 @@ root.bind('<Return>', calculate)
 root.mainloop()
 
 # done
+
+
+
+
+

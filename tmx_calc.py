@@ -1,22 +1,27 @@
 #!/usr/bin/python
 # (c) 2018 Ian Leiman, ian.leiman@gmail.com
 # tmx_calc.py
-# github project https://github.com/eianlei/trimix-fill/
-# Python-3 function calculates trimix blending for 3 different fill methods
+# GNU General Public License v3.0
 # use at your own risk, no guarantees, no liability!
-#
+# github project https://github.com/eianlei/trimix-fill/
+# Python-3 functions:
+#    tmx_calc() calculates trimix blending for 3 different fill methods
+#    tmx_cost_calc() calculates the cost of filling
 def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
              start_o2=21, start_he=35, end_o2=21, end_he=35,
              he_ignore=False):
     """calculates trimix blending for 3 different fill methods"""
     # input parameters:
-    #  filltype: pp = partial pressure, cfm= decant Helium + continuous flow Nitrox, tmx = tmx cfm
-    #  start_bar: tank start pressure in bar
-    #  end_bar: tank end pressure in bar
-    #  start_o2: tank starting o2%
-    #  start_he: tank starting he%
-    #  end_o2: wanted 02%
-    #  end_he: wanted he%
+    #  filltype: {pp, cfm, tmx}
+    #       pp = partial pressure,
+    #       cfm= decant Helium + continuous flow Nitrox,
+    #       tmx = tmx cfm
+    #  start_bar: tank start pressure in bar, must be >=0 and <= 300
+    #  end_bar: tank end pressure in bar, must be >=0 and <= 300
+    #  start_o2: tank starting o2%, must be >=0 and <= 100
+    #  start_he: tank starting he%, must be >=0 and <= 100
+    #  end_o2: wanted 02%, must be >=0 and <= 100
+    #  end_he: wanted he%, must be >=0 and <= 100
     #  he_ignore: boolean, true = ignore helium target, plain Nitrox fill
     #
     # return dictionary tmx_result, following keys:
@@ -33,12 +38,13 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
     #  mix_o2_pct : resulting O2%, should match end_o2
     #  mix_he_pct : resulting He%, should match end_he
     #  mix_n_pct : resulting N2%
-    #
+    # TODO: support also imperial units output, ie. PSI instead of BAR
+    # input uses only percentages and is PSI/BAR agnostic
     ##########################################################################
     # define the return values dictionary tmx_result
     # initialize with default values
     tmx_result = {'status_code': 99,  # 99 remains if something fatal happens
-                  'status_text': 'FATAL ERROR',  # this is overwritten by something else
+                  'status_text': 'FATAL ERROR\n',  # this is overwritten by something else
                   'tbar_2': 0,
                   'add_he': 0,
                   'add_o2': 0,
@@ -53,68 +59,70 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
                   }
 
     # error checking for input values, anything wrong and we return an error & skip calculations
-    if filltype not in ['pp', 'cfm', 'tmx']:
+    if filltype not in ['pp', 'cfm', 'tmx'] :
         tmx_result['status_code'] = 10
-        tmx_result['status_text'] = 'filltype not supported <' + filltype + '>'
+        tmx_result['status_text'] = 'ERROR: filltype not supported <' + filltype + '>\n'
         return tmx_result
-    if start_bar < 0:
+    if start_bar < 0 :
         tmx_result['status_code'] = 11
-        tmx_result['status_text'] = 'tank start pressure cannot be <0'
+        tmx_result['status_text'] = 'ERROR: tank start pressure cannot be <0\n'
         return tmx_result
-    if start_bar < 0 or end_bar < 0:
+    if  end_bar < 0 :
         tmx_result['status_code'] = 12
-        tmx_result['status_text'] = 'tank end pressure cannot be <0'
+        tmx_result['status_text'] = 'ERROR: tank end pressure cannot be <0\n'
         return tmx_result
-    if start_bar > 300:
+    if start_bar >= 300 :
         tmx_result['status_code'] = 13
-        tmx_result['status_text'] = "tank start pressure in Bar cannot be >300"
+        tmx_result['status_text'] = "ERROR: tank start pressure in Bar cannot be >=300\n"
         return tmx_result
-    if end_bar > 300:
+    if end_bar >= 300 :
         tmx_result['status_code'] = 14
-        tmx_result['status_text'] = "tank end pressure in Bar cannot be >300"
-    if end_bar <= start_bar:
+        tmx_result['status_text'] = "ERROR: tank end pressure in Bar cannot be >=300\n"
+        return tmx_result
+
+    if end_bar <= start_bar :
         tmx_result['status_code'] = 15
-        tmx_result['status_text'] = "wanted tank end pressure must be higher than start pressure"
+        tmx_result['status_text'] = "ERROR: wanted tank end pressure must be higher than start pressure\n"
         return tmx_result
-    if start_o2 < 0:
+    if start_o2 < 0 :
         tmx_result['status_code'] = 16
-        tmx_result['status_text'] = "starting oxygen content cannot be <0%"
+        tmx_result['status_text'] = "ERROR: starting oxygen content cannot be <0%\n"
         return tmx_result
-    if start_he < 0:
+    if start_he < 0 :
         tmx_result['status_code'] = 17
-        tmx_result['status_text'] = "starting helium content cannot be <0%"
+        tmx_result['status_text'] = "ERROR: starting helium content cannot be <0%\n"
         return tmx_result
-    if end_o2 < 0:
+    if end_o2 < 0 :
         tmx_result['status_code'] = 18
-        tmx_result['status_text'] = "wanted oxygen content cannot be <0%"
+        tmx_result['status_text'] = "ERROR: wanted oxygen content cannot be <0%\n"
         return tmx_result
-    if end_he < 0:
-        tmx_result['status_code'] = 9
-        tmx_result['status_text'] = "wanted helium content cannot be <0%"
+    if end_he < 0 :
+        tmx_result['status_code'] = 19
+        tmx_result['status_text'] = "ERROR: wanted helium content cannot be <0%\n"
         return tmx_result
-    if start_o2 > 100:
-        tmx_result['status_code'] = 10
-        tmx_result['status_text'] = "starting oxygen content cannot be >100%"
+    if start_o2 > 100 :
+        tmx_result['status_code'] = 20
+        tmx_result['status_text'] = "ERROR: starting oxygen content cannot be >100%\n"
         return tmx_result
-    if start_he > 100:
-        tmx_result['status_code'] = 11
-        tmx_result['status_text'] = "starting helium content cannot be >100%"
+    if start_he > 100 :
+        tmx_result['status_code'] = 21
+        tmx_result['status_text'] = "ERROR: starting helium content cannot be >100%\n"
         return tmx_result
-    if end_o2 > 100:
-        tmx_result['status_code'] = 12
-        tmx_result['status_text'] = "wanted oxygen content cannot be >100%"
+    if end_o2 > 100 :
+        tmx_result['status_code'] = 22
+        tmx_result['status_text'] = "ERROR: wanted oxygen content cannot be >100%\n"
         return tmx_result
-    if end_he > 100:
-        tmx_result['status_code'] = 13
-        tmx_result['status_text'] = "wanted helium content cannot be >100% "
+    if end_he > 100 :
+        tmx_result['status_code'] = 23
+        tmx_result['status_text'] = "ERROR: wanted helium content cannot be >100%\n"
         return tmx_result
-    if start_o2 + start_he > 100:
-        tmx_result['status_code'] = 14
-        tmx_result['status_text'] = "starting O2 + He percentage cannot exceed 100"
+    if start_o2 + start_he > 100 :
+        tmx_result['status_code'] = 24
+        tmx_result['status_text'] = "ERROR: starting O2 + He percentage cannot exceed 100%\n"
         return tmx_result
-    if end_o2 + end_he > 100:
-        tmx_result['status_code'] = 14
-        tmx_result['status_text'] = "wanted O2 + He percentage cannot exceed 100"
+    if end_o2 + end_he > 100 :
+        tmx_result['status_code'] = 25
+        tmx_result['status_text'] = "ERROR: wanted O2 + He percentage cannot exceed 100%\n"
         return tmx_result
 
     # do the calculations
@@ -169,31 +177,51 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
     # end else
 
     # error checking for results, anything wrong and we return error code
-    if add_he < 0 or add_o2 < -0.1 or add_air < 0:
-        tmx_result['status_code'] = 51
-        tmx_result['status_text'] = "blending this mix is not possible!" + \
-                                    "<add_he {}, add_o2 {}, add_air {}>".format(add_he, add_o2, add_air)
-        return tmx_result
     if filltype == "cfm" and nitrox_pct < 21:
         tmx_result['status_code'] = 52
-        tmx_result['status_text'] = "Nitrox CFM O2% <21% cannot be made!"
+        tmx_result['status_text'] = "ERROR: Nitrox CFM O2% <21% cannot be made!\n"
         return tmx_result
     if filltype == "cfm" and nitrox_pct > 36:
         tmx_result['status_code'] = 53
-        tmx_result['status_text'] = "Nitrox CFM O2% >36% cannot be made!"
+        tmx_result['status_text'] = "ERROR: Nitrox CFM O2% >36% cannot be made!\n"
         return tmx_result
+
     if filltype == "tmx" and tmx_he_pct > 36:
         tmx_result['status_code'] = 54
-        tmx_result['status_text'] = "Trimix CFM Helium % >36% cannot be made!"
+        tmx_result['status_text'] = "ERROR: Trimix CFM Helium % >36% cannot be made!\n"
         return tmx_result
     if filltype == "tmx" and tmx_o2_pct > 36:
         tmx_result['status_code'] = 55
-        tmx_result['status_text'] = "Trimix CFM where Oxygen % >36% cannot be made!"
+        tmx_result['status_text'] = "ERROR: Trimix CFM where Oxygen % >36% cannot be made!\n"
         return tmx_result
     if filltype == "tmx" and tmx_preo2_pct < 12:
         tmx_result['status_code'] = 56
-        tmx_result['status_text'] = "Trimix CFM where Oxygen % <18% cannot be made!"
+        tmx_result['status_text'] = "ERROR: Trimix CFM where Oxygen % <18% cannot be made!\n"
         return tmx_result
+
+    ## impossible mixes
+    if add_he < 0  :
+        tmx_result['status_code'] = 61
+        tmx_result['status_text'] = \
+            "ERROR: Blending this mix is not possible!\n" \
+            " negative Helium \n" \
+            "<add_he {}, add_o2 {}, add_air {}> \n".format(add_he, add_o2, add_air)
+        return tmx_result
+    if add_o2 < -0.000000001 :
+        tmx_result['status_code'] = 62
+        tmx_result['status_text'] = \
+            "ERROR: Blending this mix is not possible!\n" \
+            " negative Oxygen \n" \
+            "<add_he {}, add_o2 {}, add_air {}> \n".format(add_he, add_o2, add_air)
+        return tmx_result
+    if add_air < 0 :
+        tmx_result['status_code'] = 63
+        tmx_result['status_text'] = \
+            "ERROR: Blending this mix is not possible!\n" \
+            " negative Air \n" \
+            "<add_he {}, add_o2 {}, add_air {}> \n".format(add_he, add_o2, add_air)
+        return tmx_result
+
 
     # since we are here, then all error checking has passed, and numerical results should be valid
     # build nice text to return at tmx_result['status_text']
@@ -258,24 +286,43 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
     tmx_result['mix_he_pct'] = mix_he_pct
     tmx_result['mix_n_pct'] = mix_n_pct
     return tmx_result
-# end
+# end tmx_calc()
 
-def tmx_cost_calc(liters, endbar, add_o2, add_he, o2_cost_eur, he_cost_eur, fill_cost_eur) :
+# tmx_cost_calc() calculates the cost of filling trimix
+def tmx_cost_calc(liters, fill_bar, add_o2, add_he, o2_cost_eur, he_cost_eur, fill_cost_eur) :
      """calculate the cost of a trimix fill"""
+     # input parameters
+     #      liters : size of your tank(s) to be filled in liters of water colume
+     #      fill_bar : how many bars of pressure you fill to the tank in total
+     #      add_o2 : how many bars of pure oxygen is filled by pp or cfm
+     #      add_he : how many bars of pure helium is filled by pp or cfm
+     #          note that remaining part of gas to fill is assumed to be air
+     #      o2_cost_eur : cost of pure oxygen in Euros per cubic meter
+     #      he_cost_eur : cost of pure helium in Euros per cubic meter
+     #      fill_cost_eur : one time cost for using the compressor to top with air or cfm gas
+     # TODO: could allow also air fill cost per liters filled, other currencies, imperial units
      # define the return values dictionary tmx_cost_result
+     #      'status_code':
+     #      'result_txt' :
+     #      'cost' :
      # initialize with default values
      tmx_cost_result = {'status_code': 99,
-                        'result_txt' : "ERROR"}
+                        'result_txt' : "ERROR",
+                        'cost' : 0}
 
      # cost calculation
-     o2_lit = liters * endbar * (add_o2 / endbar)
-     he_lit = liters * endbar * (add_he / endbar)
+     o2_lit = liters * fill_bar * (add_o2 / fill_bar)
+     he_lit = liters * fill_bar * (add_he / fill_bar)
      o2_eur = o2_lit * o2_cost_eur / 1000
      he_eur = he_lit * he_cost_eur / 1000
      total_cost_eur = fill_cost_eur + o2_eur + he_eur
      total_cost_string = "Total cost of the fill is:\n{:.2f} €\n" \
                          " # {:.0f} liters Oxygen costing {:.2f} €\n" \
-                         " # {:.0f} liters Helium costing {:.2f} €\n".format( \
+                         " # {:.0f} liters Helium costing {:.2f} €\n"\
+         .format(
          total_cost_eur, o2_lit, o2_eur, he_lit, he_eur)
+     # return the results
+     tmx_cost_result['cost'] =  total_cost_eur
+     tmx_cost_result['status_code'] = 0 # OK
      tmx_cost_result['result_txt'] = total_cost_string
      return tmx_cost_result
