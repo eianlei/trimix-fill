@@ -6,7 +6,7 @@
 #  this GUI uses function tmx_calc
 # use at your own risk, no guarantees, no liability!
 #
-tmx_gui_version = "1.3"
+tmx_gui_version = "1.4"
 
 from tkinter import *
 from tkinter import ttk
@@ -31,6 +31,8 @@ print("tmx_gui v. {}: starting".format(tmx_gui_version))
 ## callback function that is called when CALCULATE pressed
 def calculate(*args) :
     """gets all entry data from GUI widgets and calls tmx_calc"""
+    global t1
+
     try:
         calc_method = method.get()
 
@@ -53,19 +55,31 @@ def calculate(*args) :
         print(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig)
         #
         result = tmx_calc(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig)
-        result_pp.set(result['status_text'])
+
+
+
         add_o2 = result['add_o2']
         add_he = result['add_he']
         cost_result = tmx_cost_calc(liters, endbar, add_o2, add_he, o2_cost_eur,
                                     he_cost_eur, fill_cost_eur)
         total_cost_string = cost_result['result_txt']
-        total_cost.set(total_cost_string)
+###############################################################
+## here we output the text
+        # to Label widgets
+        #result_pp.set(result['status_text'])
+        #total_cost.set(total_cost_string)
+        # to Text
+        timestr = time.strftime("%Y-%m-%d %H:%M")
+        t1.insert('end', "Output result from Trimix fill calculator {}\n".format(timestr))
+        t1.insert('end', result['status_text'])
+        t1.insert('end', total_cost_string)
+        t1.insert('end', "\n")
 
         ## copy results to clipboard
         root.clipboard_clear()
         root.clipboard_append("Output result from Trimix fill calculator\n")
         root.clipboard_append("=========================================\n")
-        root.clipboard_append(time.strftime("%Y-%method-%d %H:%M"))
+        root.clipboard_append(time.strftime("%Y-%m-%d %H:%M"))
         root.clipboard_append("\n- current tank {} bar, {} liters, mix {}/{}\n".format
                               (tbar_1, liters, start_o2, start_he))
         root.clipboard_append("- wanted mix {}/{}\n".format(end_o2, end_he))
@@ -88,6 +102,7 @@ end_bar         = StringVar(root, value="200")
 end_o2_pct      = StringVar(root, value="21")
 end_he_pct      = StringVar(root, value="35")
 result_pp       = StringVar(root)
+bottom_label = StringVar(root)
 #
 he_ignore       = IntVar(root, value=0)
 #
@@ -179,20 +194,34 @@ m_tmx = ttk.Radiobutton(mainframe, text='3. Trimix CFM',
 # the button to invoke calculation
 ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=1, row=12, sticky=W)
 
-# button for copying result to clipcoard
+# button for copying result to clipboard
 ttk.Button(mainframe, text="HELP", command=help_action).grid(column=2, row=12, sticky=W)
 
-# the bottom label to print results
-ttk.Label(mainframe, text="result", font="bold", relief=RAISED) \
-    .grid(column=1, row=13, sticky=(E, W), columnspan=2)
-result_pp_label = ttk.Label(mainframe, textvariable=result_pp).grid(
-    column=1, row=14, sticky=(E, W), columnspan=2)
+# the bottom Text widgets to print results, on top of them a label
+#ttk.Label(mainframe, text="result", font="bold", relief=RAISED) \
+#   .grid(column=1, row=13, sticky=(E, W), columnspan=2)
 
-result_pp_label = ttk.Label(mainframe, textvariable=total_cost).grid(
-    column=3, row=14, sticky=(W, N), columnspan=2)
+# to insert text to these, we change the contents of what is pointed by textvariable
+#result_msg = ttk.Label (mainframe, textvariable=result_pp).grid(
+#    column=1, row=14,  columnspan=2)
+#
+#cost_msg = ttk.Label (mainframe, textvariable= total_cost).grid(
+#    column=3, row=14,  columnspan=2)
+
+from tkinter import font
+t1Font = font.Font(family='Arial', size=10)
+t1 = Text(mainframe, width=80, height=16, font=t1Font)
+t1.grid(column=1, row=13,  columnspan=4)
+
+#t1.insert("end", "test")
+
+# bottom_pp_label = ttk.Label(mainframe, textvariable=bottom_label).grid(
+#     column=1, row=20,  columnspan=4)
 
 ## padding around all widgets
-for child in mainframe.winfo_children(): child.grid_configure(padx=2, pady=2)
+for child in mainframe.winfo_children():
+        child.grid_configure(padx=2, pady=2)
+mainframe.pack()
 
 # focus to the first entry field
 start_bar_entry.focus()

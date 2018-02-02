@@ -248,28 +248,35 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
 
     result_mix = "Resulting mix will be {:.0f}/{:.0f}/{:.0f} (O2/He/N).".format(
         mix_o2_pct, mix_he_pct, mix_n_pct)
-
+    start_mix = "Starting from {} bar with mix {:.0f}/{:.0f}/{:.0f} (O2/He/N).".format(
+        start_bar, start_o2, start_he, (100-start_o2-start_he) )
     if filltype == "pp":
-        result = "PARTIAL PRESSURE BLENDING:\n" \
-                 "{}\n" \
-                 "{}\n" \
-                 "From {:.1f} bars add {:.1f} bar air to {:.1f} bar.  \n" \
+        result = "{}\n" \
+                 "PARTIAL PRESSURE BLENDING:\n"\
+                 " - {}\n"\
+                 " - {}\n"\
+                 " - From {:.1f} bars add {:.1f} bar air to {:.1f} bar.  \n"\
                  "{}\n".format(
-            he_fill, o2_fill, tbar_3, add_air, end_bar,
-            result_mix)
+                 start_mix, he_fill, o2_fill, tbar_3, add_air, end_bar, result_mix)
 
     elif filltype == "cfm":
-        result = "Pure Helium + Nitrox CFM blending:\n" \
+        result = \
                  "{}\n" \
-                 "{}\n" \
+                 "Pure Helium + Nitrox CFM blending:\n"\
+                 " - {}\n"\
+                 " - {}\n"\
                  "{}\n".format(
-            he_fill, nitrox_fill, result_mix)
+                 start_mix, he_fill, nitrox_fill, result_mix)
 
     elif filltype == "tmx":
-        result = "TMX CFM blending:\n{}\n" \
-                 "first open helium flow and adjust O2 to {:.1f}%\n" \
-                 "then open oxygen flow and adjust O2 to {:.1f}%\n{}\n".format(
-            tmx_fill, tmx_preo2_pct, tmx_o2_pct, result_mix)
+        result = \
+                 "{}\n" \
+                 "TMX CFM blending:\n"\
+                 "{} \n"\
+                 " - first open helium flow and adjust O2 to {:.1f}% \n"\
+                 " - then open oxygen flow and adjust O2 to {:.1f}% \n"\
+                 "{} \n".format(
+                 start_mix, tmx_fill, tmx_preo2_pct, tmx_o2_pct, result_mix)
 
     ### now copy the calculated values from locals to dictionary we return
     tmx_result['status_code'] = 0         # ok, results are valid
@@ -292,10 +299,10 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
 def tmx_cost_calc(liters, fill_bar, add_o2, add_he, o2_cost_eur, he_cost_eur, fill_cost_eur) :
      """calculate the cost of a trimix fill"""
      # input parameters
-     #      liters : size of your tank(s) to be filled in liters of water colume
-     #      fill_bar : how many bars of pressure you fill to the tank in total
-     #      add_o2 : how many bars of pure oxygen is filled by pp or cfm
-     #      add_he : how many bars of pure helium is filled by pp or cfm
+     #      liters : size of your tank to be filled in liters (water colume)
+     #      fill_bar : end pressure of the tank in bars
+     #      add_o2 : bars of pure oxygen filled (not including what is in air fill)
+     #      add_he : bars of pure helium filled by pp or cfm
      #          note that remaining part of gas to fill is assumed to be air
      #      o2_cost_eur : cost of pure oxygen in Euros per cubic meter
      #      he_cost_eur : cost of pure helium in Euros per cubic meter
@@ -316,11 +323,12 @@ def tmx_cost_calc(liters, fill_bar, add_o2, add_he, o2_cost_eur, he_cost_eur, fi
      o2_eur = o2_lit * o2_cost_eur / 1000
      he_eur = he_lit * he_cost_eur / 1000
      total_cost_eur = fill_cost_eur + o2_eur + he_eur
-     total_cost_string = "Total cost of the fill is:\n{:.2f} €\n" \
-                         " # {:.0f} liters Oxygen costing {:.2f} €\n" \
-                         " # {:.0f} liters Helium costing {:.2f} €\n"\
-         .format(
-         total_cost_eur, o2_lit, o2_eur, he_lit, he_eur)
+     total_cost_string = \
+        "Total cost of the fill is:\n{:.2f} EUR\n" \
+        " - {:.0f} liters Oxygen costing {:.2f} EUR\n" \
+        " - {:.0f} liters Helium costing {:.2f} EUR\n"\
+        " - cfm/air fill costing {:.2f} EUR\n"\
+        .format(total_cost_eur, o2_lit, o2_eur, he_lit, he_eur, fill_cost_eur)
      # return the results
      tmx_cost_result['cost'] =  total_cost_eur
      tmx_cost_result['status_code'] = 0 # OK
