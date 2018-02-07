@@ -6,7 +6,7 @@
 #  this GUI uses function tmx_calc
 # use at your own risk, no guarantees, no liability!
 #
-tmx_gui_version = "1.5"
+tmx_gui_version = "1.7"
 
 from tkinter import *
 from tkinter import ttk
@@ -52,11 +52,12 @@ def calculate(*args) :
         he_cost_eur = float(he_cost.get())
         fill_cost_eur = float(fill_cost.get())
         he_ig = he_ignore.get()
+        o2_ig = o2_ignore.get()
 
         print("calculate with: ")
-        print(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig)
+        print(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig, o2_ig)
         #
-        result = tmx_calc(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig)
+        result = tmx_calc(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig, o2_ig)
 
 
 ###############################################################
@@ -67,6 +68,7 @@ def calculate(*args) :
 
         # print to widget t1, which is scrolledtext
         timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+        cost_result = ()
         t1.insert('end', "Output result from Trimix fill calculator {}\n".format(timestr), "tbold")
         t1.insert('end', result['status_text'])
 
@@ -116,6 +118,7 @@ result_pp       = StringVar(root)
 bottom_label = StringVar(root)
 #
 he_ignore       = IntVar(root, value=0)
+o2_ignore       = IntVar(root, value=0)
 #
 tank_lit        = StringVar(root, value="24")
 o2_cost         = StringVar(root, value="4.15")
@@ -126,7 +129,7 @@ total_cost      = StringVar(root)
 ############### define the input widgets on top
 # top label
 ttk.Label(mainframe, text="Input values for calculating the fill", font="bold").grid(
-    column=1, row=1, columnspan=2)
+    column=1, row=1, columnspan=4)
 # input current tank pressure
 ttk.Label(mainframe, text="current tank pressure (bar)").grid(column=1, row=2, sticky=W)
 start_bar_entry = ttk.Entry(mainframe, width=7, textvariable=start_bar)
@@ -144,7 +147,8 @@ ttk.Label(mainframe, text="wanted end pressure (bar)").grid(column=1, row=5, sti
 end_bar_entry = ttk.Entry(mainframe, width=7, textvariable=end_bar)
 end_bar_entry.grid(column=2, row=5, sticky=(W, E))
 # wanted o2%
-ttk.Label(mainframe, text="wanted Oxygen (%)").grid(column=1, row=6, sticky=W)
+end_o2_label = ttk.Label(mainframe, text="wanted Oxygen (%)")
+end_o2_label.grid(column=1, row=6, sticky=W)
 end_o2_pct_entry = ttk.Entry(mainframe, width=7, textvariable=end_o2_pct)
 end_o2_pct_entry.grid(column=2, row=6, sticky=(W, E))
 # wanted He %
@@ -158,9 +162,8 @@ style = ttk.Style()
 style.configure("Grey.TLabel", foreground="grey")
 style.configure("Black.TLabel", foreground="black")
 
-
-
-# callback to handle
+# checkbuttons for special cases
+# callback to handle he_ignore checkbutton
 def he_ignore_change(*args):
     heg = he_ignore.get()
     print("He cb value {}".format(heg))
@@ -171,9 +174,22 @@ def he_ignore_change(*args):
         end_he_label.configure(style="Black.TLabel")
         end_he_pct_entry.configure(state='enabled')
 
-
-ttk.Checkbutton(mainframe, text="no He filled & ignore He target", variable=he_ignore,
+ttk.Checkbutton(mainframe, text="no He target", variable=he_ignore,
                 command=he_ignore_change).grid(column=3, row=7, sticky=W)
+
+# callback to handle he_ignore checkbutton
+def o2_ignore_change(*args):
+    og = o2_ignore.get()
+    print("O2 cb value {}".format(og))
+    if og == 1:
+        end_o2_label.configure(style="Grey.TLabel")
+        end_o2_pct_entry.configure(state='disabled')
+    else:
+        end_o2_label.configure(style="Black.TLabel")
+        end_o2_pct_entry.configure(state='enabled')
+
+ttk.Checkbutton(mainframe, text="no O2 target", variable=o2_ignore,
+                command=o2_ignore_change).grid(column=3, row=6, sticky=W)
 
 ##############################################
 # input fields for cost calculation
@@ -193,15 +209,39 @@ ttk.Label(mainframe, text="cost of compressor fill (€)").grid(column=3, row=5,
 fill_cost_entry = ttk.Entry(mainframe, width=8, textvariable=fill_cost)
 fill_cost_entry.grid(column=4, row=5, sticky=(W, E))
 
+# callback when m_air Radiobutton is pressed
+def gasbutton_cb() :
+    msel = method.get()
+    if msel == "air" :
+        o2_ignore.set(True)
+        he_ignore.set(True)
+        print("air button")
+    elif msel == "nx" :
+        o2_ignore.set(False)
+        he_ignore.set(True)
+        print("nx button")
+    else :
+        o2_ignore.set(False)
+        he_ignore.set(False)
+    pass
+
 # the radio buttons to select method, rows, 9-11
 method = StringVar(root, value="tmx")
 m_pp = ttk.Radiobutton(mainframe, text='1. Partial Pressure fill, 1st He, 2nd O2, 3rd air',
+                        command = gasbutton_cb,
                        variable=method, value='pp').grid(column=1, row=9, sticky=W, columnspan=2)
 m_cfm = ttk.Radiobutton(mainframe, text='2. Helium then Nitrox CFM',
+                        command = gasbutton_cb,
                         variable=method, value='cfm').grid(column=1, row=10, sticky=W, columnspan=2)
 m_tmx = ttk.Radiobutton(mainframe, text='3. Trimix CFM',
+                        command = gasbutton_cb,
                         variable=method, value='tmx').grid(column=1, row=11, sticky=W, columnspan=2)
-
+m_air = ttk.Radiobutton(mainframe, text='4. Air fill',
+                        command = gasbutton_cb,
+                        variable=method, value='air').grid(column=3, row=9, sticky=W, columnspan=2)
+m_nx = ttk.Radiobutton(mainframe, text='5. Nitrox CFM (no He)',
+                       command = gasbutton_cb,
+                        variable=method, value='nx').grid(column=3, row=10, sticky=W, columnspan=2)
 # the button to invoke calculation
 ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=1, row=12, sticky=W)
 

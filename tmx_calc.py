@@ -7,15 +7,17 @@
 # Python-3 functions:
 #    tmx_calc() calculates trimix blending for 3 different fill methods
 #    tmx_cost_calc() calculates the cost of filling
-def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
-             start_o2=21, start_he=35, end_o2=21, end_he=35,
-             he_ignore=False):
+def tmx_calc(filltype: object = "pp", start_bar: object = 0, end_bar: object = 200,
+             start_o2: object = 21, start_he: object = 35, end_o2: object = 21, end_he: object = 35,
+             he_ignore: object = False, o2_ignore: object = False) -> object:
     """calculates trimix blending for 3 different fill methods"""
     # input parameters:
     #  filltype: {pp, cfm, tmx}
-    #       pp = partial pressure,
+    #       pp = partial pressure, He + O2 + air
     #       cfm= decant Helium + continuous flow Nitrox,
     #       tmx = tmx cfm
+    #       air = plain air fill, ignore targets, calculate mix we get
+    #       nx = plain Nitrox CFM fill, ignore helium target
     #  start_bar: tank start pressure in bar, must be >=0 and <= 300
     #  end_bar: tank end pressure in bar, must be >=0 and <= 300
     #  start_o2: tank starting o2%, must be >=0 and <= 100
@@ -23,6 +25,7 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
     #  end_o2: wanted 02%, must be >=0 and <= 100
     #  end_he: wanted he%, must be >=0 and <= 100
     #  he_ignore: boolean, true = ignore helium target, plain Nitrox fill
+    #  o2_ignore: boolean, true = ignore oxygen target, plain AIR fill
     #
     # return dictionary tmx_result, following keys:
     #  status_code: 0 if all OK, 10...20 input errors 50...60 calculation errors, 99 fatal
@@ -59,7 +62,7 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
                   }
 
     # error checking for input values, anything wrong and we return an error & skip calculations
-    if filltype not in ['pp', 'cfm', 'tmx'] :
+    if filltype not in ['pp', 'cfm', 'tmx', 'air', 'nx'] :
         tmx_result['status_code'] = 10
         tmx_result['status_text'] = 'ERROR: filltype not supported <' + filltype + '>\n'
         return tmx_result
@@ -125,6 +128,15 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
         tmx_result['status_text'] = "ERROR: wanted O2 + He percentage cannot exceed 100%\n"
         return tmx_result
 
+    # check if filling just air
+    if filltype == "air" :
+        o2_ignore = True
+        he_ignore = True
+    # check if filling just Nitrox
+    if filltype == "nx" :
+        he_ignore = True
+
+
     # do the calculations
     start_he_bar = start_bar * start_he / 100 # how many bars Helium in tank at start?
     # two cases: for plain Nitrox and actual Trimix fill
@@ -141,12 +153,20 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
         # end else he_ignore == False
     # COMMON PART OF CALCULATIONS
     # tbar_2 is the tank pressure after we have filled Helium with PP method
-    tbar_2 = start_bar + add_he               # if HeIgnore : add_he=0, and then tbar_2 = start_bar
-    # how many bar of air we must top after Helium and Oxygen are in
-    add_air = (end_bar * (1 - end_he / 100 - end_o2 / 100)
+    tbar_2 = start_bar + add_he               # if he_ignore : add_he=0, and then tbar_2 = start_bar
+
+    # are we not adding any oxygen?
+    if o2_ignore :
+        add_air = end_bar - start_bar         # if o2_ignore then just top with air
+        tbar_3 = start_bar
+        add_o2 = 0
+    else :
+        # how many bar of air we must top after Helium and Oxygen are in
+        add_air = (end_bar * (1 - end_he / 100 - end_o2 / 100)
                - start_bar * (1 - start_o2 / 100 - start_he / 100)) / 0.79
-    tbar_3 = end_bar - add_air                # tbar_3 is pressure after He+O2 is in before topping air
-    add_o2 = tbar_3 - tbar_2                  # how many bar O2 we need to fill before air
+        tbar_3 = end_bar - add_air                # tbar_3 is pressure after He+O2 is in before topping air
+        add_o2 = tbar_3 - tbar_2                  # how many bar O2 we need to fill before air
+    # end else
     start_o2_bar = start_bar * start_o2 / 100 # how many bars O2 in tank at start?
     # we have now calculated all output needed for pp fill case
     # now we can verify the end mix, we can later check if we get what we want
@@ -235,9 +255,36 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
 
     result_mix = "Resulting mix will be {:.0f}/{:.0f}/{:.0f} (O2/He/N).".format(
         mix_o2_pct, mix_he_pct, mix_n_pct)
-    start_mix = "Starting from {} bar with mix {:.0f}/{:.0f}/{:.0f} (O2/He/N).".format(
-        start_bar, start_o2, start_he, (100-start_o2-start_he) )
-    if filltype == "pp":
+    if start_bar > 0 :
+        start_mix = "Starting from {} bar with mix {:.0f}/{:.0f}/{:.0f} (O2/He/N).".format(
+            start_bar, start_o2, start_he, (100-start_o2-start_he) )
+    else :
+        start_mix = "Starting from EMPTY TANK "
+
+    # # sanity check, what are we actually making and what not
+    # if filltype == "cfm" and add_he == 0 :
+    #     filltype = "nx"
+
+    # finally build the output strings
+    if filltype == "air" :
+        result = "{}\n" \
+                 "PLAIN AIR FILL:\n"\
+                 " - no Helium \n"\
+                 " - no extra Oxygen \n"\
+                 " - From {:.1f} bars add {:.1f} bar air to {:.1f} bar.  \n"\
+                 "{}\n".format(
+                 start_mix, start_bar, add_air, end_bar, result_mix)
+
+    elif filltype == "nx" :
+        result = "{}\n"\
+                 "Nitrox CFM FILL:\n" \
+                 " - no Helium \n"\
+                 " - Oxygen enriched \n" \
+                 "{} \n" \
+                 "{}\n".format(
+                start_mix, nitrox_fill, result_mix)
+
+    elif filltype == "pp":
         result = "{}\n" \
                  "PARTIAL PRESSURE BLENDING:\n"\
                  " - {}\n"\
@@ -247,8 +294,7 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
                  start_mix, he_fill, o2_fill, tbar_3, add_air, end_bar, result_mix)
 
     elif filltype == "cfm":
-        result = \
-                 "{}\n" \
+        result = "{}\n" \
                  "Pure Helium + Nitrox CFM blending:\n"\
                  " - {}\n"\
                  " - {}\n"\
