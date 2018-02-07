@@ -126,55 +126,42 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
         return tmx_result
 
     # do the calculations
+    start_he_bar = start_bar * start_he / 100 # how many bars Helium in tank at start?
     # two cases: for plain Nitrox and actual Trimix fill
     if he_ignore:
         # calculate for Nitrox fill, igonore end_he target, no Helium is going in
-        add_he = 0
-        end_o2_bar = end_bar * end_o2 / 100
-        start_he_bar = start_bar * start_he / 100
-        end_he_bar = start_he_bar
-        end_he = 100 * start_he_bar / end_bar
-        mix_he_pct = end_he
-        tbar_2 = start_bar
-        add_air = (end_bar * (1 - end_he / 100 - end_o2 / 100)
-                   - start_bar * (1 - start_o2 / 100 - start_he / 100)) / 0.79
-
-        tbar_3 = end_bar - add_air
-        add_o2 = tbar_3 - tbar_2
-        start_o2_bar = start_bar * start_o2 / 100
-        mix_o2_pct = 100 * (start_o2_bar + add_o2 + add_air * 0.21) / end_bar
-        mix_he_pct = 100 * (start_he_bar + add_he) / end_bar
-        mix_n_pct = 100 - mix_he_pct - mix_o2_pct
-        add_nitrox = end_bar - tbar_2
-        nitrox_pct = 100 * ((end_o2_bar - start_o2_bar) / add_nitrox)
-        add_tmx = end_bar - start_bar
-        tmx_he_pct = 100 * (end_he_bar - start_he_bar) / add_tmx
-        tmx_o2_pct = 100 * (end_o2_bar - start_o2_bar) / add_tmx
-        tmx_preo2_pct = tmx_o2_pct * ((100 - tmx_he_pct) / 100)
-
+        end_he_bar = start_he_bar             # not add any He, so at the end we have same He bar
+        end_he = 100 * start_he_bar / end_bar # % He after the tank is filled full
+        add_he = 0                            # no Helium will be added
+        # end he_ignore == True
     else:
         # calculate for a trimix fill, Helium is added
-        end_he_bar = end_bar * end_he / 100
-        end_o2_bar = end_bar * end_o2 / 100
-        start_he_bar = start_bar * start_he / 100
-        add_he = end_he_bar - start_he_bar
-        tbar_2 = start_bar + add_he
-        add_air = (end_bar * (1 - end_he / 100 - end_o2 / 100)
-                   - start_bar * (1 - start_o2 / 100 - start_he / 100)) / 0.79
-
-        tbar_3 = end_bar - add_air
-        add_o2 = tbar_3 - tbar_2
-        start_o2_bar = start_bar * start_o2 / 100
-        mix_o2_pct = 100 * (start_o2_bar + add_o2 + add_air * 0.21) / end_bar
-        mix_he_pct = 100 * (start_he_bar + add_he) / end_bar
-        mix_n_pct = 100 - mix_he_pct - mix_o2_pct
-        add_nitrox = end_bar - tbar_2
-        nitrox_pct = 100 * ((end_o2_bar - start_o2_bar) / add_nitrox)
-        add_tmx = end_bar - start_bar
-        tmx_he_pct = 100 * (end_he_bar - start_he_bar) / add_tmx
-        tmx_o2_pct = 100 * (end_o2_bar - start_o2_bar) / add_tmx
-        tmx_preo2_pct = tmx_o2_pct * ((100 - tmx_he_pct) / 100)
-    # end else
+        end_he_bar = end_bar * end_he / 100   # how may bar He me want to have after fill
+        add_he = end_he_bar - start_he_bar    # how many bar of He we need to add
+        # end else he_ignore == False
+    # COMMON PART OF CALCULATIONS
+    # tbar_2 is the tank pressure after we have filled Helium with PP method
+    tbar_2 = start_bar + add_he               # if HeIgnore : add_he=0, and then tbar_2 = start_bar
+    # how many bar of air we must top after Helium and Oxygen are in
+    add_air = (end_bar * (1 - end_he / 100 - end_o2 / 100)
+               - start_bar * (1 - start_o2 / 100 - start_he / 100)) / 0.79
+    tbar_3 = end_bar - add_air                # tbar_3 is pressure after He+O2 is in before topping air
+    add_o2 = tbar_3 - tbar_2                  # how many bar O2 we need to fill before air
+    start_o2_bar = start_bar * start_o2 / 100 # how many bars O2 in tank at start?
+    # we have now calculated all output needed for pp fill case
+    # now we can verify the end mix, we can later check if we get what we want
+    mix_o2_pct = 100 * (start_o2_bar + add_o2 + add_air * 0.21) / end_bar
+    mix_he_pct = 100 * (start_he_bar + add_he) / end_bar
+    mix_n_pct = 100 - mix_he_pct - mix_o2_pct
+    # additional output needed for cfm fill case
+    add_nitrox = end_bar - tbar_2             # bars of Nitrox after Helium is in
+    end_o2_bar = end_bar * end_o2 / 100       # bars of Oxygen that the Nitrox needs to contain
+    nitrox_pct = 100 * ((end_o2_bar - start_o2_bar) / add_nitrox) # %O2 of the Nitrox needed
+    # additional output needed for tmx fill case
+    add_tmx = end_bar - start_bar             # bars of TMX mix we need to fill
+    tmx_he_pct = 100 * (end_he_bar - start_he_bar) / add_tmx  # %He that the TMX needs to have
+    tmx_o2_pct = 100 * (end_o2_bar - start_o2_bar) / add_tmx  # %O2 that the TMX needs to have
+    tmx_preo2_pct = tmx_o2_pct * ((100 - tmx_he_pct) / 100)   # what the O2 analyzer shows at start
 
     # error checking for results, anything wrong and we return error code
     if filltype == "cfm" and nitrox_pct < 21:
@@ -211,8 +198,8 @@ def tmx_calc(filltype="pp", start_bar=0, end_bar=200,
         tmx_result['status_code'] = 62
         tmx_result['status_text'] = \
             "ERROR: Blending this mix is not possible!\n" \
-            " negative Oxygen \n" \
-            "<add_he {}, add_o2 {}, add_air {}> \n".format(add_he, add_o2, add_air)
+            " - starting O2% is {:.1f}% and you want {:.1f}% \n" \
+            " - removing {:.1f} bar O2 is not possible \n".format(start_o2, end_o2, add_o2)
         return tmx_result
     if add_air < 0 :
         tmx_result['status_code'] = 63

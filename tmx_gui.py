@@ -6,10 +6,12 @@
 #  this GUI uses function tmx_calc
 # use at your own risk, no guarantees, no liability!
 #
-tmx_gui_version = "1.4"
+tmx_gui_version = "1.5"
 
 from tkinter import *
 from tkinter import ttk
+from tkinter import messagebox
+import webbrowser
 import time
 # function that does the actual calculation
 from tmx_calc import *
@@ -57,23 +59,30 @@ def calculate(*args) :
         result = tmx_calc(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig)
 
 
-
-        add_o2 = result['add_o2']
-        add_he = result['add_he']
-        cost_result = tmx_cost_calc(liters, endbar, add_o2, add_he, o2_cost_eur,
-                                    he_cost_eur, fill_cost_eur)
-        total_cost_string = cost_result['result_txt']
 ###############################################################
 ## here we output the text
         # to Label widgets
         #result_pp.set(result['status_text'])
         #total_cost.set(total_cost_string)
-        # to Text
-        timestr = time.strftime("%Y-%m-%d %H:%M")
-        t1.insert('end', "Output result from Trimix fill calculator {}\n".format(timestr))
+
+        # print to widget t1, which is scrolledtext
+        timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+        t1.insert('end', "Output result from Trimix fill calculator {}\n".format(timestr), "tbold")
         t1.insert('end', result['status_text'])
-        t1.insert('end', total_cost_string)
+
+        # if ok result, then also calculate and display cost
+        if result['status_code'] == 0 :
+            add_o2 = result['add_o2']
+            add_he = result['add_he']
+            cost_result = tmx_cost_calc(liters, endbar, add_o2, add_he, o2_cost_eur,
+                                    he_cost_eur, fill_cost_eur)
+            t1.insert('end', cost_result['result_txt'])
+        else :
+            # not OK, so pop up a dialog
+            messagebox.showinfo(message= result['status_text'])
+
         t1.insert('end', "\n")
+        t1.see("end")
 
         ## copy results to clipboard
         root.clipboard_clear()
@@ -83,7 +92,7 @@ def calculate(*args) :
         root.clipboard_append("\n- current tank {} bar, {} liters, mix {}/{}\n".format
                               (tbar_1, liters, start_o2, start_he))
         root.clipboard_append("- wanted mix {}/{}\n".format(end_o2, end_he))
-        root.clipboard_append("\n{}\n\n{}\n".format(result['status_text'], total_cost_string))
+        root.clipboard_append("\n{}\n\n{}\n".format(result['status_text'], cost_result['result_txt']))
 
     except ValueError:
         result_pp.set("enter all values as numbers!")
@@ -92,6 +101,8 @@ def calculate(*args) :
 
 def help_action(*args):
     print("HELP button pressed")
+    t1.insert('end', "launching help wiki page at web browser\n")
+    webbrowser.open('https://github.com/eianlei/trimix-fill/wiki/user-manual')
     pass
 
 # define all strings for input and output, set default values
@@ -209,11 +220,15 @@ ttk.Button(mainframe, text="HELP", command=help_action).grid(column=2, row=12, s
 #    column=3, row=14,  columnspan=2)
 
 from tkinter import font
+from tkinter import scrolledtext
 t1Font = font.Font(family='Arial', size=10)
-t1 = Text(mainframe, width=80, height=16, font=t1Font)
+t1Bold = font.Font(family='Arial', size=10, weight= font.BOLD )
+t1 = scrolledtext.ScrolledText(mainframe, width=80, height=14, font=t1Font)
+t1.tag_configure('tbold', font="arial 10 bold")
 t1.grid(column=1, row=13,  columnspan=4)
+## t1.bind("<Key>", lambda e: "break") # make t1 read only
 
-#t1.insert("end", "test")
+t1.insert("end", "tmx_gui.py ready\nEnter input and click CALCULATE\n\n")
 
 # bottom_pp_label = ttk.Label(mainframe, textvariable=bottom_label).grid(
 #     column=1, row=20,  columnspan=4)

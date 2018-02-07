@@ -1,0 +1,22 @@
+command line version tmx_c.py
+it will call the function
+    tmx_calc(filltype="pp", start_bar=0, end_bar=200,
+             start_o2=21, start_he=35, end_o2=21, end_he=35,
+             he_ignore=False)
+by taking in command line options
+-h, --help       show this help message and exit
+-v show version
+-a  
+
+    # input parameters:
+    #  filltype: {pp, cfm, tmx}
+    #       pp = partial pressure,
+    #       cfm= decant Helium + continuous flow Nitrox,
+    #       tmx = tmx cfm
+    #  start_bar: tank start pressure in bar, must be >=0 and <= 300
+    #  end_bar: tank end pressure in bar, must be >=0 and <= 300
+    #  start_o2: tank starting o2%, must be >=0 and <= 100
+    #  start_he: tank starting he%, must be >=0 and <= 100
+    #  end_o2: wanted 02%, must be >=0 and <= 100
+    #  end_he: wanted he%, must be >=0 and <= 100
+    #  he_ignore: boolean, true = ignore helium target, plain Nitrox fill
