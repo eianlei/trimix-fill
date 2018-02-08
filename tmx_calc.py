@@ -184,13 +184,15 @@ def tmx_calc(filltype: object = "pp", start_bar: object = 0, end_bar: object = 2
     tmx_preo2_pct = tmx_o2_pct * ((100 - tmx_he_pct) / 100)   # what the O2 analyzer shows at start
 
     # error checking for results, anything wrong and we return error code
-    if filltype == "cfm" and nitrox_pct < 21:
+    if (filltype in ("cfm","nx"))  and nitrox_pct < 21:
         tmx_result['status_code'] = 52
-        tmx_result['status_text'] = "ERROR: Nitrox CFM O2% <21% cannot be made!\n"
+        tmx_result['status_text'] = "ERROR: Nitrox CFM O2% <21% cannot be made!\n"\
+        " - would require {:.1f}% O2 CFM input\n".format(nitrox_pct)
         return tmx_result
-    if filltype == "cfm" and nitrox_pct > 36:
+    if (filltype in ("cfm","nx")) and nitrox_pct > 36:
         tmx_result['status_code'] = 53
-        tmx_result['status_text'] = "ERROR: Nitrox CFM O2% >36% cannot be made!\n"
+        tmx_result['status_text'] = "ERROR: Nitrox CFM O2% >36% cannot be made!\n" \
+        " - would require {:.1f}% O2 CFM input\n".format(nitrox_pct)
         return tmx_result
 
     if filltype == "tmx" and tmx_he_pct > 36:
@@ -262,8 +264,11 @@ def tmx_calc(filltype: object = "pp", start_bar: object = 0, end_bar: object = 2
         start_mix = "Starting from EMPTY TANK "
 
     # # sanity check, what are we actually making and what not
-    # if filltype == "cfm" and add_he == 0 :
-    #     filltype = "nx"
+    if filltype == "tmx" and add_he == 0 :
+        filltype = "nx" # NOT TRIMIX, just plain NX by CFM
+
+    if add_o2 == 0 and add_he == 0 :
+        filltype = "air" # we are filling only air for sure
 
     # finally build the output strings
     if filltype == "air" :
@@ -367,3 +372,9 @@ def tmx_cost_calc(liters, fill_bar, add_o2, add_he, o2_cost_eur, he_cost_eur, fi
      tmx_cost_result['status_code'] = 0 # OK
      tmx_cost_result['result_txt'] = total_cost_string
      return tmx_cost_result
+
+def mod_calc(pp02 = 1.4, o2pct =21) :
+    """calculates Maximum Operating Depth in meters for given ppO2 and o2%
+    input ppO2 in bar/ATA and o2pct in percents"""
+    mod_m = 10 * ((pp02 / (o2pct / 100))- 1)
+    return mod_m

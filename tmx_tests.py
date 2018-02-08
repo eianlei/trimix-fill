@@ -9,7 +9,7 @@
 from tmx_calc import *
 # tests for function tmx_calc(filltype="pp", start_bar=0, end_bar=200,
 #             start_o2=21, start_he=35, end_o2=21, end_he=35,
-#             he_ignore=False):
+#             he_ignore=False, o2_ignore=False):
 
 # run test, short output of results
 def runtest(*test_in) :
@@ -25,15 +25,20 @@ def runtest2(*test_in) :
     for i in result :
         print (i, result[i])
 
-# # the easy normal cases, fill from empty
-# runtest("pp", 0, 200, 21, 35, 21, 35, False)
-# runtest("cfm", 0, 200, 0, 35, 21, 35, False)
-# runtest("tmx", 0, 200, 0, 99, 21, 35, False)
+# the easy normal cases, fill from empty
+# runtest("pp", 0, 200, 21, 35, 21, 35, False, False)
+# runtest("cfm", 0, 200, 0, 35, 21, 35, False, False)
+# runtest("tmx", 0, 200, 0, 99, 21, 35, False, False)
+# runtest("air", 0, 200, 0, 99, 21, 35, False, False)
+# runtest("nx", 0, 200, 0, 99, 32, 35, False, False)
+
 #
-# # refill from 90 bar TMX 21/35
-# for i in ["pp","cfm", "tmx"] :
-#     runtest(i,  90, 200, 20, 34, 21, 35, False)
-#
+# # refill from 90 bar to TMX 21/35
+# for i in ["pp","cfm", "tmx", "air", "nx"] :
+#     runtest(i,  90, 200, 18, 45, 21, 35, False, False)
+
+
+
 # #wrong inputs should produce errors
 # runtest("xxx", 0, 200, 0, 99, 21, 35, False)
 # runtest("tmx", -1, 200, 0, 99, 21, 35, False)
@@ -67,5 +72,5 @@ def runtest2(*test_in) :
 #     runtest("pp", 0, 200, 32, 0, o2, 0, True)
 
 # # PP fills for Nitrox from empty, test a wide range
-for xx in range(0,200,10) :
-     runtest("cfm", xx, 200, 18, 45, 21, 35, False)
+# for xx in range(0,200,10) :
+#      runtest("cfm", xx, 200, 18, 45, 21, 35, False)

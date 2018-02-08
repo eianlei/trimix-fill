@@ -6,7 +6,7 @@
 #  this GUI uses function tmx_calc
 # use at your own risk, no guarantees, no liability!
 #
-tmx_gui_version = "1.7"
+tmx_gui_version = "1.8"
 
 from tkinter import *
 from tkinter import ttk
@@ -46,6 +46,7 @@ def calculate(*args) :
         start_he = float(start_he_pct.get())
         end_o2 = float(end_o2_pct.get())
         end_he = float(end_he_pct.get())
+        ppo2in = float(ppo2.get())
         # cost calculation input
         liters = float(tank_lit.get())
         o2_cost_eur = float(o2_cost.get())
@@ -55,7 +56,7 @@ def calculate(*args) :
         o2_ig = o2_ignore.get()
 
         print("calculate with: ")
-        print(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig, o2_ig)
+        print(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, ppo2in, he_ig, o2_ig)
         #
         result = tmx_calc(calc_method, tbar_1, endbar, start_o2, start_he, end_o2, end_he, he_ig, o2_ig)
 
@@ -72,8 +73,10 @@ def calculate(*args) :
         t1.insert('end', "Output result from Trimix fill calculator {}\n".format(timestr), "tbold")
         t1.insert('end', result['status_text'])
 
-        # if ok result, then also calculate and display cost
+        # if ok result, then also calculate MOD and display cost
         if result['status_code'] == 0 :
+            mod_m = mod_calc(ppo2in, result['mix_o2_pct'])
+            t1.insert('end', "MOD is {:.1f} meters for ppO2 {:.1f} \n".format(mod_m, ppo2in))
             add_o2 = result['add_o2']
             add_he = result['add_he']
             cost_result = tmx_cost_calc(liters, endbar, add_o2, add_he, o2_cost_eur,
@@ -82,6 +85,7 @@ def calculate(*args) :
         else :
             # not OK, so pop up a dialog
             messagebox.showinfo(message= result['status_text'])
+            return
 
         t1.insert('end', "\n")
         t1.see("end")
@@ -114,6 +118,7 @@ start_he_pct    = StringVar(root, value="35")
 end_bar         = StringVar(root, value="200")
 end_o2_pct      = StringVar(root, value="21")
 end_he_pct      = StringVar(root, value="35")
+ppo2            = StringVar(root, value="1.4")
 result_pp       = StringVar(root)
 bottom_label = StringVar(root)
 #
@@ -156,6 +161,11 @@ end_he_label = ttk.Label(mainframe, text="wanted Helium (%)")
 end_he_label.grid(column=1, row=7, sticky=W)
 end_he_pct_entry = ttk.Entry(mainframe, width=7, textvariable=end_he_pct)
 end_he_pct_entry.grid(column=2, row=7, sticky=(W, E))
+# ppO2 value for MOD
+ppo2_label = ttk.Label(mainframe, text="ppO2 for MOD (ATA)")
+ppo2_label.grid(column=1, row=8, sticky=W)
+ppo2_entry = ttk.Entry(mainframe, width=7, textvariable=ppo2)
+ppo2_entry.grid(column=2, row=8, sticky=(W, E))
 
 ## check button for not filling Helium and ignoring He target
 style = ttk.Style()
@@ -177,19 +187,20 @@ def he_ignore_change(*args):
 ttk.Checkbutton(mainframe, text="no He target", variable=he_ignore,
                 command=he_ignore_change).grid(column=3, row=7, sticky=W)
 
-# callback to handle he_ignore checkbutton
-def o2_ignore_change(*args):
-    og = o2_ignore.get()
-    print("O2 cb value {}".format(og))
-    if og == 1:
-        end_o2_label.configure(style="Grey.TLabel")
-        end_o2_pct_entry.configure(state='disabled')
-    else:
-        end_o2_label.configure(style="Black.TLabel")
-        end_o2_pct_entry.configure(state='enabled')
-
-ttk.Checkbutton(mainframe, text="no O2 target", variable=o2_ignore,
-                command=o2_ignore_change).grid(column=3, row=6, sticky=W)
+# callback to handle o2_ignore checkbutton
+# REMOVED FROM USE, IT IS A BAD IDEA!!!
+# def o2_ignore_change(*args):
+#     og = o2_ignore.get()
+#     print("O2 cb value {}".format(og))
+#     if og == 1:
+#         end_o2_label.configure(style="Grey.TLabel")
+#         end_o2_pct_entry.configure(state='disabled')
+#     else:
+#         end_o2_label.configure(style="Black.TLabel")
+#         end_o2_pct_entry.configure(state='enabled')
+#
+# ttk.Checkbutton(mainframe, text="no O2 target", variable=o2_ignore,
+#                 command=o2_ignore_change).grid(column=3, row=6, sticky=W)
 
 ##############################################
 # input fields for cost calculation
@@ -229,24 +240,24 @@ def gasbutton_cb() :
 method = StringVar(root, value="tmx")
 m_pp = ttk.Radiobutton(mainframe, text='1. Partial Pressure fill, 1st He, 2nd O2, 3rd air',
                         command = gasbutton_cb,
-                       variable=method, value='pp').grid(column=1, row=9, sticky=W, columnspan=2)
+                       variable=method, value='pp').grid(column=1, row=10, sticky=W, columnspan=2)
 m_cfm = ttk.Radiobutton(mainframe, text='2. Helium then Nitrox CFM',
                         command = gasbutton_cb,
-                        variable=method, value='cfm').grid(column=1, row=10, sticky=W, columnspan=2)
+                        variable=method, value='cfm').grid(column=1, row=11, sticky=W, columnspan=2)
 m_tmx = ttk.Radiobutton(mainframe, text='3. Trimix CFM',
                         command = gasbutton_cb,
-                        variable=method, value='tmx').grid(column=1, row=11, sticky=W, columnspan=2)
+                        variable=method, value='tmx').grid(column=1, row=12, sticky=W, columnspan=2)
 m_air = ttk.Radiobutton(mainframe, text='4. Air fill',
                         command = gasbutton_cb,
-                        variable=method, value='air').grid(column=3, row=9, sticky=W, columnspan=2)
+                        variable=method, value='air').grid(column=3, row=10, sticky=W, columnspan=2)
 m_nx = ttk.Radiobutton(mainframe, text='5. Nitrox CFM (no He)',
                        command = gasbutton_cb,
-                        variable=method, value='nx').grid(column=3, row=10, sticky=W, columnspan=2)
+                        variable=method, value='nx').grid(column=3, row=11, sticky=W, columnspan=2)
 # the button to invoke calculation
-ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=1, row=12, sticky=W)
+ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=1, row=13, sticky=W)
 
-# button for copying result to clipboard
-ttk.Button(mainframe, text="HELP", command=help_action).grid(column=2, row=12, sticky=W)
+# button for HELP
+ttk.Button(mainframe, text="HELP", command=help_action).grid(column=2, row=13, sticky=W)
 
 # the bottom Text widgets to print results, on top of them a label
 #ttk.Label(mainframe, text="result", font="bold", relief=RAISED) \
@@ -259,13 +270,14 @@ ttk.Button(mainframe, text="HELP", command=help_action).grid(column=2, row=12, s
 #cost_msg = ttk.Label (mainframe, textvariable= total_cost).grid(
 #    column=3, row=14,  columnspan=2)
 
+# scrolledtext widget for output text
 from tkinter import font
 from tkinter import scrolledtext
 t1Font = font.Font(family='Arial', size=10)
 t1Bold = font.Font(family='Arial', size=10, weight= font.BOLD )
 t1 = scrolledtext.ScrolledText(mainframe, width=80, height=14, font=t1Font)
 t1.tag_configure('tbold', font="arial 10 bold")
-t1.grid(column=1, row=13,  columnspan=4)
+t1.grid(column=1, row=14,  columnspan=4)
 ## t1.bind("<Key>", lambda e: "break") # make t1 read only
 
 t1.insert("end", "tmx_gui.py ready\nEnter input and click CALCULATE\n\n")
