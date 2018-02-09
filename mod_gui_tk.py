@@ -6,6 +6,7 @@
 # use at your own risk, no guarantees, no liability!
 #
 # GUI to calculate MOD using tkinter
+# there is a parallel design using pyqt5, mod_qui_pyqt5.py
 
 gui_version = "0.1"
 
