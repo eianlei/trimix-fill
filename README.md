@@ -14,6 +14,7 @@ Currently there are
 - mod_gui_tk.py, GUI module for MOD calculation, uses tkinter
 - mod_gui_pyqt5.py, GUI module for MOD calculation, uses PyQt5 instead of tkinter
 - mod_gui_sb.py, GUI module for MOD calculation, uses PyQt5 and SpinBox widgets
+- mod_gui_sb_sliders.py, GUI module for MOD calculation, uses PyQt5, SpinBox & slider widgets
 
 The project started form a single file module trimix-fill-3.py
 Then it it was refactored so that the raw calculations are in functions inside the tmx_calc.py
